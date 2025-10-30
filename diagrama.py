@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Módulo para generar el diagrama y documento Word con los flujos.
 
 Funciones públicas:
@@ -11,15 +12,55 @@ import os
 
 
 def _load_fonts():
+    """Carga las fuentes con mejor soporte para caracteres especiales y acentos."""
     try:
-        font_title = ImageFont.truetype("DejaVuSans-Bold.ttf", 28)
-        font_box = ImageFont.truetype("DejaVuSans-Bold.ttf", 20)
-        font_small = ImageFont.truetype("DejaVuSans.ttf", 16)
-    except Exception:
-        # si no hay fuentes disponibles, usar la fuente por defecto de PIL
+        # Intentar fuentes del sistema con buen soporte Unicode
+        font_candidates = [
+            # Windows fonts
+            "arial.ttf", "calibri.ttf", "segoeui.ttf", "tahoma.ttf",
+            # Cross-platform fonts
+            "DejaVuSans-Bold.ttf", "liberation-sans-bold.ttf",
+            # Fallback fonts
+            "NotoSans-Bold.ttf", "OpenSans-Bold.ttf"
+        ]
+        
+        font_title = None
+        font_box = None
+        font_small = None
+        
+        # Buscar fuentes disponibles
+        for font_name in font_candidates:
+            try:
+                font_title = ImageFont.truetype(font_name, 26)  # Reducir de 28 a 26
+                font_box = ImageFont.truetype(font_name.replace("-Bold", ""), 16)  # Reducir de 18 a 16
+                font_small = ImageFont.truetype(font_name.replace("-Bold", ""), 12)  # Reducir de 14 a 12
+                print(f"Usando fuente: {font_name}")
+                break
+            except (OSError, IOError):
+                continue
+        
+        # Si no se encuentra ninguna fuente específica, usar fuentes del sistema
+        if font_title is None:
+            try:
+                # Intentar fuentes del sistema Windows
+                font_title = ImageFont.truetype("arial.ttf", 26)  # Reducir tamaño
+                font_box = ImageFont.truetype("arial.ttf", 16)    # Reducir tamaño
+                font_small = ImageFont.truetype("arial.ttf", 12)  # Reducir tamaño
+                print("Usando fuente del sistema: Arial")
+            except (OSError, IOError):
+                # Último recurso: fuente por defecto de PIL (pero mejorada)
+                font_title = ImageFont.load_default()
+                font_box = ImageFont.load_default()
+                font_small = ImageFont.load_default()
+                print("Usando fuente por defecto de PIL")
+                
+    except Exception as e:
+        print(f"Error cargando fuentes: {e}")
+        # Fallback seguro
         font_title = ImageFont.load_default()
-        font_box = ImageFont.load_default()
+        font_box = ImageFont.load_default()  
         font_small = ImageFont.load_default()
+        
     return font_title, font_box, font_small
 
 
@@ -33,7 +74,7 @@ def _generate_png_diagram(img_path):
         str: ruta de la imagen generada
     """
     # Create an image with PIL for clean boxes and arrows
-    width, height = 1800, 900  # Aumentar tamaño para mejor visibilidad y espaciado
+    width, height = 2000, 970  # Aumentar ancho para cajas verdes movidas hacia la derecha
     bg_color = (248, 250, 252)  # Fondo gris muy claro para mejor contraste
     img = Image.new("RGB", (width, height), bg_color)
     draw = ImageDraw.Draw(img)
@@ -47,20 +88,22 @@ def _generate_png_diagram(img_path):
     border_color = (30, 50, 80)
     shadow_color = (200, 200, 200)     # Color para sombras
 
-    # Positions for boxes - Mejor distribución y espaciado
+    # Positions for boxes - Mejor distribución y espaciado con cajas ajustadas
     x_gestor, y_gestor = 120, 280
-    w_box, h_box = 380, 110  # Cajas más grandes para mejor legibilidad
+    w_box_gestor, h_box_gestor = 350, 100  # Reducir GestorMapeos de 380x110 a 350x100
+    w_box, h_box = 470, 150  # Tamaño para cajas azules (ERP)
+    w_box_green, h_box_green = 490, 160  # Cajas verdes un pelín más grandes
 
     x_api, y_api = 600, 150
-    x_api_ampliacion, y_api_ampliacion = 600, 520  # Más separación vertical
+    x_api_ampliacion, y_api_ampliacion = 600, 540  # Ajustar por cajas más altas
 
     # Three green boxes stacked vertically on the right with better spacing
-    x_expe_post1, y_expe_post1 = 1150, 150  # Expedientes general
-    x_expe_post2, y_expe_post2 = 1150, 300  # POST /api/v1/expedientes-alumnos  
-    x_expe_post3, y_expe_post3 = 1150, 450  # POST /api/v1/expedientes-alumnos/matricula-realizada
+    x_expe_post1, y_expe_post1 = 1200, 150  # Mover hacia la derecha de 1150 a 1200
+    x_expe_post2, y_expe_post2 = 1200, 330  # POST /api/v1/expedientes-alumnos (más separación)
+    x_expe_post3, y_expe_post3 = 1200, 510  # POST /api/v1/expedientes-alumnos/matricula-realizada
 
     # Draw title with better styling
-    title_text = "Flujos: GestorMapeos → ERP Académico → Expedientes"
+    title_text = "Flujos: GestorMapeos - ERP Académico - Expedientes"
     # Dibujar sombra del título
     draw.text((width // 2 - 218, 22), title_text, font=font_title, fill=(180,180,180))
     # Dibujar título principal
@@ -99,19 +142,19 @@ def _generate_png_diagram(img_path):
             y_offset += th
 
     # Draw boxes
-    draw_box(x_gestor, y_gestor, w_box, h_box, color_gestor, "GestorMapeos", font_box)
+    draw_box(x_gestor, y_gestor, w_box_gestor, h_box_gestor, color_gestor, "GestorMapeos", font_box)
     draw_box(x_api, y_api, w_box, h_box, color_erp,
-             "API Primera Matrícula\nPOST /api/v1/migrar\nhttps://erpacademico.unir.net",
+             "API Primera Matrícula\n\nPOST https://erpacademico.unir.net/api/v1/migrar\n\n",
              font_box)
     draw_box(x_api_ampliacion, y_api_ampliacion, w_box, h_box, color_erp,
-             "API Ampliación\nPOST /api/v1/migrar/ampliacion\nhttps://erpacademico.unir.net",
+             "API Ampliación\n\nPOST https://erpacademico.unir.net/api/v1/migrar/ampliacion\n\n",
              font_box)
-    # Three green boxes stacked vertically
-    draw_box(x_expe_post1, y_expe_post1, w_box, h_box, color_expedientes, 
-             "Expedientes\nhttps://expedientesacademico.unir.net", font_box)
-    draw_box(x_expe_post2, y_expe_post2, w_box, h_box, color_expedientes, 
+    # Three green boxes stacked vertically with larger size
+    draw_box(x_expe_post1, y_expe_post1, w_box_green, h_box_green, color_expedientes, 
+             "Expedientes\n\nhttps://expedientesacademico.unir.net", font_box)
+    draw_box(x_expe_post2, y_expe_post2, w_box_green, h_box_green, color_expedientes, 
              "POST /api/v1/expedientes-alumnos", font_box)
-    draw_box(x_expe_post3, y_expe_post3, w_box, h_box, color_expedientes, 
+    draw_box(x_expe_post3, y_expe_post3, w_box_green, h_box_green, color_expedientes, 
              "POST /api/v1/expedientes-alumnos/matricula-realizada", font_box)
 
     # Draw arrows (lines with triangles) - Improved
@@ -131,44 +174,44 @@ def _generate_png_diagram(img_path):
     def draw_arrow_with_text(x1, y1, x2, y2, text, fill=(40,40,40), width_line=5):
         draw_arrow(x1, y1, x2, y2, fill, width_line)
         # Calculate text position (middle of the arrow)
-        text_x = (x1 + x2) // 2 - 60  # Ajustar posición horizontal
-        text_y = (y1 + y2) // 2 - 25  # Más arriba de la línea
+        text_x = (x1 + x2) // 2 - 50  # Ajustar para cajas más grandes
+        text_y = (y1 + y2) // 2 - 20  # Mantener posición vertical
         # Fondo blanco con borde para el texto
         bbox = draw.textbbox((text_x, text_y), text, font=font_small)
-        padding = 5
+        padding = 6  # Más padding para texto más pequeño
         draw.rectangle([bbox[0]-padding, bbox[1]-padding, bbox[2]+padding, bbox[3]+padding], 
                       fill=(255,255,255), outline=(150,150,150), width=2)
         draw.text((text_x, text_y), text, font=font_small, fill=fill)
 
     # Flow 1: GestorMapeos -> API Primera Matrícula -> Two green boxes (not matricula-realizada)
-    draw_arrow_with_text(x_gestor + w_box, y_gestor + h_box/2, 
+    draw_arrow_with_text(x_gestor + w_box_gestor, y_gestor + h_box_gestor/2, 
                          x_api, y_api + h_box/2, 
                          "Primera Matrícula")
     
     # From API Primera Matrícula to only the first two green boxes
     draw_arrow_with_text(x_api + w_box, y_api + h_box/2, 
-                         x_expe_post1, y_expe_post1 + h_box/2, 
-                         "Crear/Actualizar")
+                         x_expe_post1, y_expe_post1 + h_box_green/2, 
+                         "Actualizar Expediente")
     
     draw_arrow_with_text(x_api + w_box, y_api + h_box/2 + 10, 
-                         x_expe_post2, y_expe_post2 + h_box/2, 
+                         x_expe_post2, y_expe_post2 + h_box_green/2, 
                          "Crear Expediente")
 
     # Flow 2: GestorMapeos -> API Ampliación -> Last green box only
-    draw_arrow_with_text(x_gestor + w_box, y_gestor + h_box/2 + 40, 
+    draw_arrow_with_text(x_gestor + w_box_gestor, y_gestor + h_box_gestor/2 + 40, 
                          x_api_ampliacion, y_api_ampliacion + h_box/2, 
                          "Ampliación")
     
     draw_arrow_with_text(x_api_ampliacion + w_box, y_api_ampliacion + h_box/2, 
-                         x_expe_post3, y_expe_post3 + h_box/2, 
-                         "Matricula Realizada")
+                         x_expe_post3, y_expe_post3 + h_box_green/2, 
+                         "Matrícula Realizada")
 
     # Add legends at bottom with better styling
-    legend_y = 750  # Ajustar posición para el nuevo layout más grande
+    legend_y = 820  # Ajustar para cajas más altas
     legend_box_size = 28
     
     # Fondo para la leyenda
-    draw.rectangle([60, legend_y-15, 620, legend_y+50], fill=(255,255,255), outline=(180,180,180), width=2)
+    draw.rectangle([60, legend_y-15, 720, legend_y+50], fill=(255,255,255), outline=(180,180,180), width=2)
     
     draw.rectangle([80, legend_y, 80+legend_box_size, legend_y+legend_box_size], 
                    fill=color_gestor, outline=border_color, width=2)
@@ -201,7 +244,7 @@ def _generate_word_document(doc_path, img_path):
     doc = Document()
     
     # Título principal
-    doc.add_heading('Esquema de Flujos: GestorMapeos → ERP Académico → Expedientes', level=1)
+    doc.add_heading('Esquema de Flujos: GestorMapeos - ERP Académico - Expedientes', level=1)
     
     # Introducción
     intro = doc.add_paragraph()
@@ -234,11 +277,11 @@ def _generate_word_document(doc_path, img_path):
     # Expedientes
     doc.add_heading('Expedientes', level=3)
     doc.add_paragraph('• Crear expediente:', style='List Bullet')
-    doc.add_paragraph('  POST https://expedientesacademico.unir.net/api/v1/expedientes-alumnos', style='List Bullet 2')
+    doc.add_paragraph('  POST https://expedienteserp.unir.net/api/v1/expedientes-alumnos', style='List Bullet 2')
     doc.add_paragraph('• Modificar expediente por integración:', style='List Bullet')
-    doc.add_paragraph('  PUT https://expedientesacademico.unir.net/api/v1/expedientes-alumnos/{id}/por-integracion', style='List Bullet 2')
+    doc.add_paragraph('  PUT https://expedienteserp.unir.net/api/v1/expedientes-alumnos/{id}/por-integracion', style='List Bullet 2')
     doc.add_paragraph('• Notificar matrícula realizada:', style='List Bullet')
-    doc.add_paragraph('  POST https://expedientesacademico.unir.net/api/v1/expedientes-alumnos/matricula-realizada', style='List Bullet 2')
+    doc.add_paragraph('  POST https://expedienteserp.unir.net/api/v1/expedientes-alumnos/matricula-realizada', style='List Bullet 2')
 
     doc.add_heading('Descripción Detallada de los Flujos', level=2)
     
@@ -251,9 +294,9 @@ def _generate_word_document(doc_path, img_path):
     doc.add_paragraph('2. El ERP Académico procesa y guarda la matrícula', style='List Number')
     doc.add_paragraph('3. Si es la PRIMERA matrícula, el ERP puede:', style='List Number')
     doc.add_paragraph('   a) Crear un nuevo expediente en Expedientes:', style='List Number 2')
-    doc.add_paragraph('      POST https://expedientesacademico.unir.net/api/v1/expedientes-alumnos', style='List Number 3')
+    doc.add_paragraph('      POST https://expedienteserpunir.net/api/v1/expedientes-alumnos', style='List Number 3')
     doc.add_paragraph('   b) Actualizar un expediente existente:', style='List Number 2')
-    doc.add_paragraph('      PUT https://expedientesacademico.unir.net/api/v1/expedientes-alumnos/{id}/por-integracion', style='List Number 3')
+    doc.add_paragraph('      PUT https://expedienteserp.unir.net/api/v1/expedientes-alumnos/{id}/por-integracion', style='List Number 3')
 
     # Flujo 2
     doc.add_heading('Flujo 2 — Ampliación (No Primera Matrícula)', level=3)
@@ -263,7 +306,7 @@ def _generate_word_document(doc_path, img_path):
     doc.add_paragraph('   → POST https://erpacademico.unir.net/api/v1/migrar/ampliacion', style='List Number 2')
     doc.add_paragraph('2. El ERP Académico procesa y guarda la matrícula', style='List Number')
     doc.add_paragraph('3. El ERP notifica a Expedientes que se ha realizado una matrícula:', style='List Number')
-    doc.add_paragraph('   → POST https://expedientesacademico.unir.net/api/v1/expedientes-alumnos/matricula-realizada', style='List Number 2')
+    doc.add_paragraph('   → POST https://expedienteserp.unir.net/api/v1/expedientes-alumnos/matricula-realizada', style='List Number 2')
 
     doc.add_heading('Código PlantUML', level=2)
     plantuml_code = """@startuml
@@ -275,15 +318,15 @@ skinparam rectangle {
 }
 actor "GestorMapeos" as GM <<Gestor>>
 rectangle "ERP Académico\nPOST /api/v1/migrar (primera)\nPOST /api/v1/migrar/ampliacion (no primera)" as ERP <<ERP>>
-rectangle "Expedientes\nhttps://expedientesacademico.unir.net" as EXP <<Expedientes>>
-GM --> ERP : POST /api/v1/migrar
+rectangle "Expedientes\nhttps://expedienteserp.unir.net" as EXP <<Expedientes>>
+GM --> ERP : POST https://erpacademico.unir.net/api/v1/migrar
 ERP --> EXP : "Primera matrícula -> crear/actualizar expediente"
 note right of ERP
-    - Crear: POST /api/v1/expedientes-alumnos
-    - Actualizar: PUT /api/v1/expedientes-alumnos/{id}/por-integracion
+    - Crear: POST https://expedienteserp.unir.net/api/v1/expedientes-alumnos
+    - Actualizar: PUT https://expedienteserp.unir.net/api/v1/expedientes-alumnos/{id}/por-integracion
 end note
-GM --> ERP : POST /api/v1/migrar/ampliacion
-ERP --> EXP : POST /api/v1/expedientes-alumnos/matricula-realizada
+GM --> ERP : POST https://erpacademico.unir.net/api/v1/migrar/ampliacion
+ERP --> EXP : POST https://expedienteserp.unir.net/api/v1/expedientes-alumnos/matricula-realizada
 @enduml"""
     doc.add_paragraph(plantuml_code)
     
