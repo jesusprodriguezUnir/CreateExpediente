@@ -274,8 +274,8 @@ skinparam rectangle {
   FontColor white
 }
 actor "GestorMapeos" as GM <<Gestor>>
-rectangle "ERP Académico\\nPOST /api/v1/migrar (primera)\\nPOST /api/v1/migrar/ampliacion (no primera)" as ERP <<ERP>>
-rectangle "Expedientes\\nhttps://expedientesacademico.unir.net" as EXP <<Expedientes>>
+rectangle "ERP Académico\nPOST /api/v1/migrar (primera)\nPOST /api/v1/migrar/ampliacion (no primera)" as ERP <<ERP>>
+rectangle "Expedientes\nhttps://expedientesacademico.unir.net" as EXP <<Expedientes>>
 GM --> ERP : POST /api/v1/migrar
 ERP --> EXP : "Primera matrícula -> crear/actualizar expediente"
 note right of ERP
