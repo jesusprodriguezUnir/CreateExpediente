@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+output/
+output_test/
+.DS_Store
+.env
+.idea
+.vscode
