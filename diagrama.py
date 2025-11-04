@@ -89,10 +89,10 @@ def _generate_png_diagram(img_path):
     shadow_color = (200, 200, 200)     # Color para sombras
 
     # Positions for boxes - Mejor distribución y espaciado con cajas ajustadas
-    x_gestor, y_gestor = 120, 280
-    w_box_gestor, h_box_gestor = 350, 100  # Reducir GestorMapeos de 380x110 a 350x100
-    w_box, h_box = 470, 150  # Tamaño para cajas azules (ERP)
-    w_box_green, h_box_green = 490, 160  # Cajas verdes un pelín más grandes
+    x_gestor, y_gestor = 100, 280
+    w_box_gestor, h_box_gestor = 340, 100  # Reducir GestorMapeos de 380x110 a 350x100
+    w_box, h_box = 450, 100  # Tamaño para cajas azules (ERP) - más pequeñas
+    w_box_green, h_box_green = 590, 140  # Cajas verdes un pelín más grandes
 
     x_api, y_api = 600, 150
     x_api_ampliacion, y_api_ampliacion = 600, 540  # Ajustar por cajas más altas
@@ -151,11 +151,11 @@ def _generate_png_diagram(img_path):
              font_box)
     # Three green boxes stacked vertically with larger size
     draw_box(x_expe_post1, y_expe_post1, w_box_green, h_box_green, color_expedientes, 
-             "Expedientes\n\nhttps://expedientesacademico.unir.net", font_box)
+             "POST\n\napi/v1/expedientes-alumnos", font_box)
     draw_box(x_expe_post2, y_expe_post2, w_box_green, h_box_green, color_expedientes, 
-             "POST /api/v1/expedientes-alumnos", font_box)
+             "PUT\n\napi/v1/expedientes-alumnos/{id}/por-integracion", font_box)
     draw_box(x_expe_post3, y_expe_post3, w_box_green, h_box_green, color_expedientes, 
-             "POST /api/v1/expedientes-alumnos/matricula-realizada", font_box)
+             "POST\n\napi/v1/expedientes-alumnos/matricula-realizada", font_box)
 
     # Draw arrows (lines with triangles) - Improved
     def draw_arrow(x1, y1, x2, y2, fill=(40,40,40), width_line=5):
@@ -191,11 +191,11 @@ def _generate_png_diagram(img_path):
     # From API Primera Matrícula to only the first two green boxes
     draw_arrow_with_text(x_api + w_box, y_api + h_box/2, 
                          x_expe_post1, y_expe_post1 + h_box_green/2, 
-                         "Actualizar Expediente")
+                         "Crear Expediente")
     
     draw_arrow_with_text(x_api + w_box, y_api + h_box/2 + 10, 
                          x_expe_post2, y_expe_post2 + h_box_green/2, 
-                         "Crear Expediente")
+                         "Actualizar Expediente")
 
     # Flow 2: GestorMapeos -> API Ampliación -> Last green box only
     draw_arrow_with_text(x_gestor + w_box_gestor, y_gestor + h_box_gestor/2 + 40, 
